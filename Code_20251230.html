@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2-9乘法口诀综合练习（完整版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: '微软雅黑', sans-serif;
+        }
+        body {
+            background-color: #f5fafe;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            text-align: center;
+            width: 100%;
+            max-width: 650px;
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 25px;
+            font-size: 26px;
+            font-weight: 600;
+        }
+        .mode-btn {
+            padding: 10px 22px;
+            margin: 0 8px 15px;
+            border: none;
+            border-radius: 30px;
+            background: #4299e1;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mode-btn.active {
+            background: #2b6cb0;
+            transform: scale(1.05);
+        }
+        .question {
+            font-size: 48px;
+            margin: 25px 0;
+            color: #2d3748;
+            min-height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* 答案显示框 */
+        .answer-display {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px 20px;
+            font-size: 28px;
+            margin: 15px 0;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            background: #f8f9fa;
+            letter-spacing: 2px;
+            display: none; /* 默认隐藏 */
+        }
+        /* 模式3、4显示显示框 */
+        .mode3 .answer-display,
+        .mode4 .answer-display {
+            display: flex;
+        }
+        .input-area {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            background: #48bb78;
+            color: white;
+            font-size: 17px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #38a169;
+        }
+        /* 答案选择方块样式 */
+        .answer-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0 25px;
+        }
+        .answer-btn {
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #2d3748;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .answer-btn.selected {
+            border-color: #4299e1;
+            background: #e8f4f8;
+            font-weight: 600;
+        }
+        /* 模式二重复选择时显示选中次数 */
+        .answer-btn.selected.mode2-duplicate::after {
+            content: '×2';
+            font-size: 14px;
+            color: #4299e1;
+            margin-left: 4px;
+        }
+        .feedback {
+            font-size: 21px;
+            margin-bottom: 18px;
+            height: 35px;
+            font-weight: 500;
+        }
+        .score {
+            font-size: 19px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+        .clear-btn {
+            background: #ed8936;
+            margin-left: 10px;
+        }
+        .clear-btn:hover {
+            background: #dd6b20;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="container">
+        <h1>2-9乘法口诀综合练习（完整版）</h1>
+        <!-- 模式按钮 -->
+        <button class="mode-btn active" id="mode1">模式1：乘数已知（如：二二？？）</button>
+        <button class="mode-btn" id="mode2">模式2：积已知（如：？？得六）</button>
+        <button class="mode-btn" id="mode3">模式3：根据算式写口诀</button>
+        <button class="mode-btn" id="mode4">模式4：根据口诀写算式</button>
+        
+        <div class="question" id="question"></div>
+        
+        <!-- 答案显示框（模式3、4显示） -->
+        <div class="answer-display" id="answerDisplay"></div>
+        
+        <!-- 答案选择方块区域 -->
+        <div class="answer-buttons" id="answerButtons">
+            <!-- 动态生成选项 -->
+        </div>
+        
+        <div class="input-area">
+            <button class="btn" id="submit">提交答案</button>
+            <button class="btn clear-btn" id="clear">清空选择</button>
+            <button class="btn" id="next">下一题</button>
+        </div>
+        
+        <div class="feedback" id="feedback"></div>
+        <div class="score">当前得分：<span id="score">0</span></div>
+    </div>
+    <script>
+        let currentMode = 1;
+        let score = 0;
+        let currentQuestion = {};
+        let selectedAnswers = []; // 存储选中的答案（按顺序）
+        // 不同模式的答案选项
+        const charOptions = ['一','二','三','四','五','六','七','八','九','十','得']; // 模式1、2、3用
+        const numSymbolOptions = ['0','1','2','3','4','5','6','7','8','9','×','+','=']; // 模式4用（新增"0"）
+        
+        // 完整乘法口诀库（a≤b，覆盖2-9全部口诀）
+        const multiplicationTable = [
+            // 二的乘法口诀
+            {a:1,b:2,result:2}, {a:2,b:2,result:4}, {a:2,b:3,result:6}, {a:2,b:4,result:8},
+            {a:2,b:5,result:10}, {a:2,b:6,result:12}, {a:2,b:7,result:14}, {a:2,b:8,result:16},
+            {a:2,b:9,result:18},
+            // 三的乘法口诀
+            {a:1,b:3,result:3}, {a:3,b:3,result:9}, {a:3,b:4,result:12}, {a:3,b:5,result:15},
+            {a:3,b:6,result:18}, {a:3,b:7,result:21}, {a:3,b:8,result:24}, {a:3,b:9,result:27},
+            // 四的乘法口诀
+            {a:1,b:4,result:4}, {a:4,b:4,result:16}, {a:4,b:5,result:20}, {a:4,b:6,result:24},
+            {a:4,b:7,result:28}, {a:4,b:8,result:32}, {a:4,b:9,result:36},
+            // 五的乘法口诀
+            {a:1,b:5,result:5}, {a:5,b:5,result:25}, {a:5,b:6,result:30}, {a:5,b:7,result:35},
+            {a:5,b:8,result:40}, {a:5,b:9,result:45},
+            // 六的乘法口诀
+            {a:6,b:6,result:36}, {a:6,b:7,result:42}, {a:6,b:8,result:48}, {a:6,b:9,result:54},
+            // 七的乘法口诀
+            {a:7,b:7,result:49}, {a:7,b:8,result:56}, {a:7,b:9,result:63},
+            // 八的乘法口诀
+            {a:8,b:8,result:64}, {a:8,b:9,result:72},
+            // 九的乘法口诀
+            {a:9,b:9,result:81}
+        ];
+        
+        // 数字转中文（覆盖所有口诀的乘数和积，新增6-9口诀对应积的中文）
+        function convertToChinese(num) {
+            const chineseMap = {
+                1:'一',2:'二',3:'三',4:'四',5:'五',6:'六',7:'七',8:'八',9:'九',
+                10:'一十',12:'十二',14:'十四',15:'十五',16:'十六',18:'十八',
+                20:'二十',21:'二十一',24:'二十四',25:'二十五',27:'二十七',28:'二十八',
+                30:'三十',32:'三十二',35:'三十五',36:'三十六',40:'四十',42:'四十二',
+                45:'四十五',48:'四十八',49:'四十九',54:'五十四',56:'五十六',63:'六十三',
+                64:'六十四',72:'七十二',81:'八十一'
+            };
+            return chineseMap[num] || '';
+        }
+        
+        // 中文转数字（1-9）
+        function convertToNumber(chinese) {
+            const numMap = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+            return numMap[chinese] || 0;
+        }
+        
+        // 更新答案显示框
+        function updateAnswerDisplay() {
+            const displayEl = document.getElementById('answerDisplay');
+            displayEl.textContent = selectedAnswers.join('');
+        }
+        
+        // 初始化答案选择方块（根据模式切换选项）
+        function initAnswerButtons() {
+            const buttonsContainer = document.getElementById('answerButtons');
+            buttonsContainer.innerHTML = '';
+            // 选择当前模式的选项数组
+            const currentOptions = currentMode === 4 ? numSymbolOptions : charOptions;
+            
+            currentOptions.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = option;
+                btn.addEventListener('click', () => toggleAnswerSelection(btn, option));
+                buttonsContainer.appendChild(btn);
+            });
+        }
+        
+        // 切换答案选中状态（适配所有模式）
+        function toggleAnswerSelection(btn, option) {
+            if (currentMode === 1) {
+                // 模式1：不可重复，切换选中
+                const index = selectedAnswers.indexOf(option);
+                if (index > -1) {
+                    selectedAnswers.splice(index, 1);
+                    btn.classList.remove('selected');
+                } else {
+                    selectedAnswers.push(option);
+                    btn.classList.add('selected');
+                }
+            } else if (currentMode === 2) {
+                // 模式2：最多2个，支持重复
+                const count = selectedAnswers.filter(item => item === option).length;
+                if (selectedAnswers.length >= 2) {
+                    if (count === 0) {
+                        selectedAnswers.pop();
+                        selectedAnswers.push(option);
+                    } else if (count === 1) {
+                        selectedAnswers.push(option);
+                        btn.classList.add('mode2-duplicate');
+                    }
+                } else {
+                    selectedAnswers.push(option);
+                    if (selectedAnswers.filter(item => item === option).length === 2) {
+                        btn.classList.add('mode2-duplicate');
+                    }
+                }
+                btn.classList.add('selected');
+            } else {
+                // 模式3、4：按顺序累加选择，不限数量（支持多+号）
+                selectedAnswers.push(option);
+                btn.classList.add('selected');
+            }
+            // 模式3、4更新显示框
+            if (currentMode >= 3) updateAnswerDisplay();
+        }
+        
+        // 清空选中答案
+        function clearSelectedAnswers() {
+            selectedAnswers = [];
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                btn.classList.remove('selected', 'mode2-duplicate');
+            });
+            if (currentMode >= 3) updateAnswerDisplay();
+            document.getElementById('feedback').textContent = '';
+        }
+        
+        // 生成加法算式（仅生成≥2个加数的合法算式）
+        function generateAddFormula(a, b) {
+            const min = Math.min(a, b);
+            const max = Math.max(a, b);
+            // 确保加数个数≥2，避免单个数字+="
+            if (min < 2 && max < 2) return ''; // 不可能出现（口诀库中无1×1）
+            const type = Math.random() > 0.5 ? 1 : 2;
+            if (type === 1) {
+                return max >= 2 ? Array(max).fill(min).join('+') + '=' : '';
+            } else {
+                return min >= 2 ? Array(min).fill(max).join('+') + '=' : '';
+            }
+        }
+        
+        // 生成模式3的算式（修复：避免单个数字+="，a或b=1时强制生成乘法）
+        function generateMode3Formula(a, b) {
+            // 当有一个因数是1时，强制生成乘法（加法会是单个数字+="，无意义）
+            if (a === 1 || b === 1) {
+                return Math.random() > 0.5 ? `${a}×${b}=` : `${b}×${a}=`;
+            }
+            // 两个因数都≥2时，随机生成乘法/合法加法
+            const isMulti = Math.random() > 0.5;
+            if (isMulti) {
+                return Math.random() > 0.5 ? `${a}×${b}=` : `${b}×${a}=`;
+            } else {
+                const addFormula = generateAddFormula(a, b);
+                // 兜底：若加法算式生成失败（理论上不会），则生成乘法
+                return addFormula || `${a}×${b}=`;
+            }
+        }
+        
+        // 生成题目（覆盖所有完整版口诀）
+        function generateQuestion() {
+            const randomIdx = Math.floor(Math.random() * multiplicationTable.length);
+            currentQuestion = multiplicationTable[randomIdx];
+            const questionEl = document.getElementById('question');
+            const a = currentQuestion.a;
+            const b = currentQuestion.b;
+            const result = currentQuestion.result;
+            const hasDe = result < 10; // 积<10的口诀带"得"字
+            
+            switch(currentMode) {
+                case 1:
+                    const num1 = convertToChinese(a);
+                    const num2 = convertToChinese(b);
+                    questionEl.textContent = `${num1}${num2}？？`;
+                    break;
+                case 2:
+                    const resultCh = convertToChinese(result);
+                    questionEl.textContent = `？？${hasDe ? '得' : ''}${resultCh}`;
+                    break;
+                case 3:
+                    // 模式3：显示合法算式（无单个数字+="）
+                    const formula = generateMode3Formula(a, b);
+                    questionEl.textContent = formula;
+                    break;
+                case 4:
+                    // 模式4：显示口诀（小数在前，如"二七十四"）
+                    const koujue = `${convertToChinese(a)}${convertToChinese(b)}${hasDe ? '得' : ''}${convertToChinese(result)}`;
+                    questionEl.textContent = koujue;
+                    break;
+            }
+            
+            clearSelectedAnswers();
+        }
+        
+        // 验证模式3答案（算式→口诀，适配所有完整版口诀）
+        function verifyMode3() {
+            const a = currentQuestion.a;
+            const b = currentQuestion.b;
+            const result = currentQuestion.result;
+            const hasDe = result < 10;
+            // 正确口诀（小数在前，如"二七十四"）
+            const correctKoujue = `${convertToChinese(a)}${convertToChinese(b)}${hasDe ? '得' : ''}${convertToChinese(result)}`;
+            const userAnswer = selectedAnswers.join('');
+            return userAnswer === correctKoujue;
+        }
+        
+        // 解析模式4算式（支持所有口诀的乘法/加法形式）
+        function parseMode4Formula() {
+            const formula = selectedAnswers.join('');
+            // 分割等号（确保有左右两边）
+            const [left, right] = formula.split('=');
+            if (!left || !right) return false;
+            
+            // 验证结果是否正确（处理多位数，支持6-9口诀的积）
+            const correctResult = currentQuestion.result;
+            const userResult = parseInt(right.replace(/^0+/, '') || '0'); // 去除前导0，避免"020"误判
+            if (userResult !== correctResult) return false;
+            
+            const a = currentQuestion.a;
+            const b = currentQuestion.b;
+            
+            // 乘法验证（如"6×7=42"或"7×6=42"）
+            if (left.includes('×')) {
+                const factors = left.split('×').map(item => parseInt(item.trim())).filter(Boolean);
+                return factors.length === 2 && factors[0] * factors[1] === correctResult;
+            } 
+            // 加法验证（如"6+6+6+6+6+6+6=42"或"7+7+7+7+7+7=42"）
+            else if (left.includes('+')) {
+                const addends = left.split('+').map(item => parseInt(item.trim())).filter(Boolean);
+                if (addends.length === 0) return false;
+                // 所有加数必须相同
+                const first = addends[0];
+                const allSame = addends.every(item => item === first);
+                if (!allSame) return false;
+                // 累加个数是否为a或b
+                const count = addends.length;
+                return (first === a && count === b) || (first === b && count === a);
+            }
+            
+            return false;
+        }
+        
+        // 提交答案验证
+        document.getElementById('submit').addEventListener('click', () => {
+            const feedbackEl = document.getElementById('feedback');
+            let isCorrect = false;
+            
+            switch(currentMode) {
+                case 1:
+                    const productCh = convertToChinese(currentQuestion.result);
+                    const expected = currentQuestion.result < 10 ? ['得', ...productCh.split('')] : productCh.split('');
+                    isCorrect = selectedAnswers.sort().join('') === expected.sort().join('');
+                    break;
+                case 2:
+                    if (selectedAnswers.length === 2) {
+                        const num1 = convertToNumber(selectedAnswers[0]);
+                        const num2 = convertToNumber(selectedAnswers[1]);
+                        isCorrect = num1 * num2 === currentQuestion.result;
+                    }
+                    break;
+                case 3:
+                    isCorrect = verifyMode3();
+                    break;
+                case 4:
+                    isCorrect = parseMode4Formula();
+                    break;
+            }
+            
+            if (isCorrect) {
+                feedbackEl.textContent = `✅ 正确！`;
+                feedbackEl.style.color = '#48bb78';
+                score++;
+                document.getElementById('score').textContent = score;
+            } else {
+                feedbackEl.textContent = `❌ 错误！再试试～`;
+                feedbackEl.style.color = '#e53e3e';
+            }
+        });
+        
+        // 模式切换
+        function switchMode(mode) {
+            currentMode = mode;
+            // 更新模式按钮状态
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`mode${mode}`).classList.add('active');
+            // 更新容器模式类（控制显示框）
+            const container = document.getElementById('container');
+            container.className = 'container mode' + mode;
+            // 重新初始化
+            initAnswerButtons();
+            clearSelectedAnswers();
+            generateQuestion();
+        }
+        
+        document.getElementById('mode1').addEventListener('click', () => switchMode(1));
+        document.getElementById('mode2').addEventListener('click', () => switchMode(2));
+        document.getElementById('mode3').addEventListener('click', () => switchMode(3));
+        document.getElementById('mode4').addEventListener('click', () => switchMode(4));
+        
+        // 下一题
+        document.getElementById('next').addEventListener('click', () => {
+            clearSelectedAnswers();
+            generateQuestion();
+        });
+        
+        // 清空选择
+        document.getElementById('clear').addEventListener('click', clearSelectedAnswers);
+        
+        // 初始化
+        initAnswerButtons();
+        generateQuestion();
+    </script>
+</body>
+</html>
